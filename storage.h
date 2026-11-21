@@ -5,26 +5,51 @@
 
 #define TICKETS_FILE "tickets.csv"
 
-// Initialize ticket file with CSV header if file does not exist
+// Complete ticket record representing a line in tickets.csv
+typedef struct {
+    int token;
+    char counter[16];           // "Railway" or "Bus"
+    char name[NAME_LEN];
+    char destination[DEST_LEN];
+    char bookingDate[16];       // DD-MM-YYYY
+    char bookingTime[16];       // HH:MM:SS
+    int priority;               // 1: Emergency, 2: Assistance, 3: Senior, 4: Normal
+    char status[16];            // "WAITING", "SERVED", "CANCELLED"
+    char serviceDate[16];       // DD-MM-YYYY or "-"
+    char serviceTime[16];       // HH:MM:SS or "-"
+    char cancellationDate[16];  // DD-MM-YYYY or "-"
+    char cancellationTime[16];  // HH:MM:SS or "-"
+    char serviceWindow[32];     // "Railway Window 1", etc. or "-"
+    int regSeq;                 // Registration sequence number
+} TicketRecord;
+
+// Storage initialization and migration
 int initStorage(void);
 
-// Save a newly registered ticket to CSV file
-int saveTicket(int token, const char *counter, const char *name, const char *dest, const char *date, const char *timeStr);
+// Safe ticket persistence operations
+int saveTicketSafe(const TicketRecord *rec);
+int updateTicketToServedSafe(int token, const char *serviceWindow, const char *srvDate, const char *srvTime);
+int updateTicketToCancelledSafe(int token, const char *canDate, const char *canTime);
 
-// Update status of a ticket to SERVED using temporary file replacement
-int updateTicketStatus(int token, const char *newStatus);
+// Search operations
+int findTicketByToken(int token, TicketRecord *out);
+int searchTicketsByName(const char *nameQuery, TicketRecord results[], int maxResults);
 
-// Restore waiting passengers from file into queues on startup
-// Returns the highest token number found in the file, or 0 if none
-int loadTickets(Queue *railwayQ, Queue *busQ);
+// Restore queues and track token/sequence counters on startup
+int loadTicketsSafe(Queue *railwayQ, Queue *busQ, int *maxToken, int *maxRegSeq);
 
-// Display summary report of tickets issued and served today
+// Report and display functions
 void displayTodayReport(void);
-
-// Display entire ticket history from CSV file
+void displayDailyStats(const char *targetDate);
+void displayWeeklyStats(void);
+void displayMonthlyStats(void);
+void displayComparisonStats(const Queue *railwayQ, const Queue *busQ);
+void displayPeakHours(void);
+void displayWindowPerformance(void);
 void displayTicketHistory(void);
+void displaySingleTicketRecord(const TicketRecord *rec);
 
-// Get current system date (DD-MM-YYYY) and time (HH:MM:SS)
+// Time utility helper
 void getCurrentDateTime(char *dateStr, int dateSize, char *timeStr, int timeSize);
 
 #endif // STORAGE_H
